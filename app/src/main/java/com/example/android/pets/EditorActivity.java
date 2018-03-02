@@ -17,6 +17,7 @@ package com.example.android.pets;
 
 import android.content.ContentValues;
 import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.NavUtils;
@@ -32,6 +33,7 @@ import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.Toast;
 
+import com.example.android.pets.data.PetContract;
 import com.example.android.pets.data.PetContract.PetEntry;
 import com.example.android.pets.data.PetDbHelper;
 
@@ -148,10 +150,6 @@ public class EditorActivity extends AppCompatActivity {
 
     private void savePet() {
 
-        /** Instantiate a db helper */
-        petDbHelper = new PetDbHelper(this);
-        db = petDbHelper.getReadableDatabase();
-
         /** Initialize ContentValues e put data */
         ContentValues values = new ContentValues();
         values.put(PetEntry.COLUMN_PET_NAME, mNameEditText.getText().toString().trim());
@@ -159,28 +157,21 @@ public class EditorActivity extends AppCompatActivity {
         values.put(PetEntry.COLUMN_PET_WEIGHT, Integer.parseInt(mWeightEditText.getText().toString().trim()));
         values.put(PetEntry.COLUMN_PET_GENDER, mGender);
 
-        /** Stores Row ID on variable */
-        long newRowID =
-                db.insert(PetEntry.TABLE_NAME, null, values);
+        // Insere um novo pet no provider, returnando o URI de conteúdo para o novo pet.
+        Uri newUri = getContentResolver().insert(PetEntry.CONTENT_URI, values);
 
-        /** Display rowID after finish */
-        Toast.makeText(this, "New row added: " + newRowID, Toast.LENGTH_SHORT).show();
+        // Mostra um mensagem toast dependendo ou não se a inserção foi bem sucedida
+        if (newUri == null) {
+            // Se o novo conteúdo do URI é nulo, então houve um erro com inserção.
+            Toast.makeText(this, R.string.insert_failed,
+                    Toast.LENGTH_SHORT).show();
+        } else {
+            // Caso contrário, a inserção foi bem sucedida e podemos mostrar um toast.
+            Toast.makeText(this, R.string.insert_ok,
+                    Toast.LENGTH_SHORT).show();
+        }
 
-        /**
-         * Debug
-         * */
-        Log.d("asd", mNameEditText.getText().toString().trim() + "#");
-        Log.e("asd", mBreedEditText.getText().toString().trim());
-        Log.i("asd", String.valueOf(Integer.parseInt(mWeightEditText.getText().toString().trim())));
-        Log.wtf("asd", String.valueOf(mGender));
-
-        Toast.makeText(this, "All Right", Toast.LENGTH_SHORT).show();
-
-        /**
-         * Close Activity
-         * */
-        EditorActivity.this.finish();
-        (this).finish();
+        /** Close Activity */
         finish();
     }
 }
