@@ -59,7 +59,7 @@ public class PetProvider extends ContentProvider {
         SQLiteDatabase database = helper.getReadableDatabase( );
 
         // This cursor will hold the result of the query
-        Cursor cursor = null;
+        Cursor cursor;
 
         // Figure out if the URI matcher can match the URI to a specific code
         int match = sUriMatcher.match(uri);
@@ -97,6 +97,7 @@ public class PetProvider extends ContentProvider {
             default:
                 throw new IllegalArgumentException("Cannot query unknown URI " + uri);
         }
+        cursor.setNotificationUri(getContext().getContentResolver(), uri);
         return cursor;
     }
 
@@ -138,6 +139,7 @@ public class PetProvider extends ContentProvider {
                 return null;
             }
 
+            getContext().getContentResolver().notifyChange(uri, null);
             return ContentUris.withAppendedId(uri, id);
         }
     }
@@ -188,7 +190,7 @@ public class PetProvider extends ContentProvider {
     private int updatePet( Uri uri, ContentValues values, String selection, String[] selectionArgs ) {
 
         SQLiteDatabase db = helper.getReadableDatabase( );
-        // TODO: Atualizar os pets selecionados na tabela de banco de dados de pets com o dado ContentValues
+        // Atualiza os pets selecionados na tabela de banco de dados de pets com o dado ContentValues
 
         if (values.size( ) == 0) {
             return 0;
@@ -209,7 +211,8 @@ public class PetProvider extends ContentProvider {
                 throw new IllegalArgumentException("Pet requires a name");
             }
 
-            // TODO: Retornar o número de registros que foram afetados
+            getContext().getContentResolver().notifyChange(uri, null);
+            // Retorna o número de registros que foram afetados
             return db.update(PetEntry.TABLE_NAME, values, selection, selectionArgs);
         } else {
             Log.e(LOG_TAG, "Updates inputs are invalid");
@@ -230,6 +233,7 @@ public class PetProvider extends ContentProvider {
         switch (match) {
             case PETS:
                 // Deleta todos os registros que correspondem ao selection e selection args
+                getContext().getContentResolver().notifyChange(uri, null);
                 return database.delete(PetEntry.TABLE_NAME, selection, selectionArgs);
             case PETS_ID:
                 // Deleta um único registro dado pelo ID na URI
