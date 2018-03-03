@@ -63,6 +63,6 @@ public class PetCursorAdapter extends CursorAdapter {
         nameView.setText(name);
         summaryView.setText(breed);
 
-        int i;
+        int i; int x;
     }
 }
