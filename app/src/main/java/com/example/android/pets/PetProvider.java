@@ -8,8 +8,8 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.util.Log;
+import android.widget.Toast;
 
-import com.example.android.pets.data.PetContract;
 import com.example.android.pets.data.PetDbHelper;
 
 import static com.example.android.pets.data.PetContract.*;
@@ -31,19 +31,21 @@ public class PetProvider extends ContentProvider {
     private static final UriMatcher sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
 
     static {
-        sUriMatcher.addURI(AUTHORITY_CONSTANT, PATH_PETS, PETS);
-        sUriMatcher.addURI(AUTHORITY_CONSTANT, PATH_PETS_ID, PETS_ID);
+        sUriMatcher.addURI(CONTENT_AUTHORITY, PATH_PETS, PETS);
+        sUriMatcher.addURI(CONTENT_AUTHORITY, PATH_PETS_ID, PETS_ID);
     }
 
-    /** Tag for the log messages */
-    public static final String LOG_TAG = PetProvider.class.getSimpleName();
+    /**
+     * Tag for the log messages
+     */
+    public static final String LOG_TAG = PetProvider.class.getSimpleName( );
 
     /**
      * Initialize the provider and the database helper object.
      */
     @Override
     public boolean onCreate() {
-        helper = new PetDbHelper(getContext());
+        helper = new PetDbHelper(getContext( ));
         return true;
     }
 
@@ -51,10 +53,10 @@ public class PetProvider extends ContentProvider {
      * Perform the query for the given URI. Use the given projection, selection, selection arguments, and sort order.
      */
     @Override
-    public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
-                        String sortOrder) {
+    public Cursor query( Uri uri, String[] projection, String selection, String[] selectionArgs,
+                         String sortOrder ) {
         // Get readable database
-        SQLiteDatabase database = helper.getReadableDatabase();
+        SQLiteDatabase database = helper.getReadableDatabase( );
 
         // This cursor will hold the result of the query
         Cursor cursor = null;
@@ -85,7 +87,7 @@ public class PetProvider extends ContentProvider {
                 // arguments that will fill in the "?". Since we have 1 question mark in the
                 // selection, we have 1 String in the selection arguments' String array.
                 selection = PetEntry._ID + "=?";
-                selectionArgs = new String[] { String.valueOf(ContentUris.parseId(uri)) };
+                selectionArgs = new String[]{String.valueOf(ContentUris.parseId(uri))};
 
                 // This will perform a query on the pets table where the _id equals 3 to return a
                 // Cursor containing that row of the table.
@@ -102,7 +104,7 @@ public class PetProvider extends ContentProvider {
      * Insert new data into the provider with the given ContentValues.
      */
     @Override
-    public Uri insert(Uri uri, ContentValues contentValues) {
+    public Uri insert( Uri uri, ContentValues contentValues ) {
         final int match = sUriMatcher.match(uri);
         switch (match) {
             case PETS:
@@ -116,27 +118,103 @@ public class PetProvider extends ContentProvider {
      * Insert a pet into the database with the given content values. Return the new content URI
      * for that specific row in the database.
      */
-    private Uri insertPet(Uri uri, ContentValues values) {
+    private Uri insertPet( Uri uri, ContentValues values ) {
 
-        // TODO: Insert a new pet into the pets database table with the given ContentValues
-        SQLiteDatabase db = helper.getReadableDatabase();
-        long id = db.insert(PetEntry.TABLE_NAME, null, values);
+        // Insert a new pet into the pets database table with the given ContentValues
+        // Get SQLdb
+        SQLiteDatabase db = helper.getReadableDatabase( );
 
-        if (id == -1) {
-            Log.e(LOG_TAG, "Failed to insert row for " + uri);
+        //Check if data is valid before insert
+        if (checkContentValues(values) == false) {
+            Log.e(LOG_TAG, "Invalid inputs were submitted");
             return null;
-        }
+        } else {
+            // Insert data on db
+            long id = db.insert(PetEntry.TABLE_NAME, null, values);
 
-        // Once we know the ID of the new row in the table,
-        // return the new URI with the ID appended to the end of it
-        return ContentUris.withAppendedId(uri, id);
+            // Log if insertion failed
+            if (id == -1) {
+                Log.e(LOG_TAG, "Failed to insert row for " + uri);
+                return null;
+            }
+
+            return ContentUris.withAppendedId(uri, id);
+        }
+    }
+
+    private boolean checkContentValues( ContentValues values ) {
+        if (values.getAsString(PetEntry.COLUMN_PET_NAME) == null ||
+                values.getAsString(PetEntry.COLUMN_PET_NAME).isEmpty( )) {
+            Toast.makeText(getContext( ), "Name cannot be empty", Toast.LENGTH_SHORT).show( );
+            return false;
+        }
+        if (values.getAsInteger(PetEntry.COLUMN_PET_WEIGHT) <= 0) {
+            Toast.makeText(getContext( ), "Weight must be bigger then 0", Toast.LENGTH_SHORT).show( );
+            return false;
+        }
+        if (values.getAsInteger(PetEntry.COLUMN_PET_GENDER) == null) {
+            throw new IllegalArgumentException("Pet requires valid gender");
+        }
+        return true;
     }
 
     /**
      * Updates the data at the given selection and selection arguments, with the new ContentValues.
      */
     @Override
-    public int update(Uri uri, ContentValues contentValues, String selection, String[] selectionArgs) {
+    public int update( Uri uri, ContentValues contentValues, String selection,
+                       String[] selectionArgs ) {
+        final int match = sUriMatcher.match(uri);
+        switch (match) {
+            case PETS:
+                return updatePet(uri, contentValues, selection, selectionArgs);
+            case PETS_ID:
+                // Para o código PET_ID, extraia o ID do URI,
+                // para que saibamos qual registro atualizar. Selection será "_id=?" and selection
+                // args será um String array contendo o atual ID.
+                selection = PetEntry._ID + "=?";
+                selectionArgs = new String[]{String.valueOf(ContentUris.parseId(uri))};
+                return updatePet(uri, contentValues, selection, selectionArgs);
+            default:
+                throw new IllegalArgumentException("Update is not supported for " + uri);
+        }
+    }
+
+    /**
+     * Atualize pets no banco de dados com os content values dados. Aplique as mudanças aos registros
+     * especificados no selection e selection args (que podem ser 0 ou 1 ou mais pets).
+     * Retorne o número de registros que foram atualizados com sucesso.
+     */
+    private int updatePet( Uri uri, ContentValues values, String selection, String[] selectionArgs ) {
+
+        SQLiteDatabase db = helper.getReadableDatabase( );
+        // TODO: Atualizar os pets selecionados na tabela de banco de dados de pets com o dado ContentValues
+
+        if (values.size( ) == 0) {
+            return 0;
+        }
+
+        if ((values.containsKey(PetEntry.COLUMN_PET_NAME) &&
+                !values.getAsString(PetEntry.COLUMN_PET_NAME).isEmpty( )) ||
+
+                (values.containsKey(PetEntry.COLUMN_PET_WEIGHT) &&
+                        values.getAsInteger(PetEntry.COLUMN_PET_WEIGHT) > 0 &&
+                        values.getAsInteger(PetEntry.COLUMN_PET_WEIGHT) != null) ||
+
+                values.containsKey(PetEntry.COLUMN_PET_GENDER) ||
+                values.containsKey(PetEntry.COLUMN_PET_BREED)) {
+
+            String name = values.getAsString(PetEntry.COLUMN_PET_NAME);
+            if (name == null) {
+                throw new IllegalArgumentException("Pet requires a name");
+            }
+
+            // TODO: Retornar o número de registros que foram afetados
+            return db.update(PetEntry.TABLE_NAME, values, selection, selectionArgs);
+        } else {
+            Log.e(LOG_TAG, "Updates inputs are invalid");
+            Toast.makeText(getContext( ), "Não foi possivel atualizar", Toast.LENGTH_SHORT);
+        }
         return 0;
     }
 
@@ -144,15 +222,38 @@ public class PetProvider extends ContentProvider {
      * Delete the data at the given selection and selection arguments.
      */
     @Override
-    public int delete(Uri uri, String selection, String[] selectionArgs) {
-        return 0;
+    public int delete( Uri uri, String selection, String[] selectionArgs ) {
+        // Obtém banco de dados com permissão de escrita
+        SQLiteDatabase database = helper.getWritableDatabase( );
+
+        final int match = sUriMatcher.match(uri);
+        switch (match) {
+            case PETS:
+                // Deleta todos os registros que correspondem ao selection e selection args
+                return database.delete(PetEntry.TABLE_NAME, selection, selectionArgs);
+            case PETS_ID:
+                // Deleta um único registro dado pelo ID na URI
+                selection = PetEntry._ID + "=?";
+                selectionArgs = new String[]{String.valueOf(ContentUris.parseId(uri))};
+                return database.delete(PetEntry.TABLE_NAME, selection, selectionArgs);
+            default:
+                throw new IllegalArgumentException("Deletion is not supported for " + uri);
+        }
     }
 
     /**
      * Returns the MIME type of data for the content URI.
      */
     @Override
-    public String getType(Uri uri) {
-        return null;
+    public String getType( Uri uri ) {
+        final int match = sUriMatcher.match(uri);
+        switch (match) {
+            case PETS:
+                return PetEntry.CONTENT_LIST_TYPE;
+            case PETS_ID:
+                return PetEntry.CONTENT_ITEM_TYPE;
+            default:
+                throw new IllegalStateException("Unknown URI " + uri + " with match " + match);
+        }
     }
 }

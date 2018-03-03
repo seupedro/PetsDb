@@ -60,4 +60,6 @@
     <string name="gender_female">Female</string>
     <string name="insert_failed">Erro ao salvar o Pet</string>
     <string name="insert_ok">Pet salvo!</string>
+    <string name="empty_title">It\' a bit lonely here...</string>
+    <string name="empty_text">Get started by adding a pet</string>
 </resources>

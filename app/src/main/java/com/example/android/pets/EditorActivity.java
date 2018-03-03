@@ -42,6 +42,8 @@ import com.example.android.pets.data.PetDbHelper;
  */
 public class EditorActivity extends AppCompatActivity {
 
+    private static final String LOG_TAG = EditorActivity.class.getSimpleName();
+
     /** EditText field to enter the pet's name */
     private EditText mNameEditText;
 
@@ -169,6 +171,7 @@ public class EditorActivity extends AppCompatActivity {
             // Caso contrário, a inserção foi bem sucedida e podemos mostrar um toast.
             Toast.makeText(this, R.string.insert_ok,
                     Toast.LENGTH_SHORT).show();
+            Log.e(LOG_TAG, newUri.toString());
         }
 
         /** Close Activity */
