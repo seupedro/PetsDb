@@ -15,8 +15,11 @@
  */
 package com.example.android.pets;
 
+import android.app.LoaderManager;
 import android.content.ContentValues;
+import android.content.CursorLoader;
 import android.content.Intent;
+import android.content.Loader;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -29,25 +32,21 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.android.pets.data.PetContract;
 import com.example.android.pets.data.PetContract.PetEntry;
 
 /**
  * Displays list of pets that were entered and stored in the app.
  */
-public class CatalogActivity extends AppCompatActivity {
+public class CatalogActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks <Cursor> {
 
     ListView listView;
-
-    @Override
-    protected void onStart() {
-        super.onStart( );
-        displayDatabaseInfo();
-    }
+    PetCursorAdapter petCursorAdapter;
 
     private static final String LOG_TAG = CatalogActivity.class.getSimpleName( );
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate( Bundle savedInstanceState ) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_catalog);
 
@@ -58,59 +57,33 @@ public class CatalogActivity extends AppCompatActivity {
 
         // Setup FAB to open EditorActivity
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
+        fab.setOnClickListener(new View.OnClickListener( ) {
             @Override
-            public void onClick(View view) {
+            public void onClick( View view ) {
                 Intent intent = new Intent(CatalogActivity.this, EditorActivity.class);
                 startActivity(intent);
             }
         });
 
-         displayDatabaseInfo();
-    }
-
-    /**
-     * Temporary helper method to display information in the onscreen TextView about the state of
-     * the pets database.
-     */
-    private void displayDatabaseInfo() {
-
-        // Perform this raw SQL query "SELECT * FROM pets"
-        // to get a Cursor that contains all rows from the pets table.
-        String[] projection = {
-                PetEntry._ID,
-                PetEntry.COLUMN_PET_NAME,
-                PetEntry.COLUMN_PET_BREED,
-                PetEntry.COLUMN_PET_WEIGHT,
-                PetEntry.COLUMN_PET_GENDER
-        };
-
-       Cursor cursor = getContentResolver().query(
-               PetEntry.CONTENT_URI,
-               projection,
-               null,
-               null,
-               null);
-
-        PetCursorAdapter petCursorAdapter = new PetCursorAdapter(this, cursor);
-        listView.setAdapter(petCursorAdapter);
+        petCursorAdapter = new PetCursorAdapter(this, null);
+        getLoaderManager( ).initLoader(0, null, this);
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
+    public boolean onCreateOptionsMenu( Menu menu ) {
         // Inflate the menu options from the res/menu/menu_catalog.xml file.
         // This adds menu items to the app bar.
-        getMenuInflater().inflate(R.menu.menu_catalog, menu);
+        getMenuInflater( ).inflate(R.menu.menu_catalog, menu);
         return true;
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
+    public boolean onOptionsItemSelected( MenuItem item ) {
         // User clicked on a menu option in the app bar overflow menu
-        switch (item.getItemId()) {
+        switch (item.getItemId( )) {
             // Respond to a click on the "Insert dummy data" menu option
             case R.id.action_insert_dummy_data:
-                insetData();
+                insetData( );
                 return true;
             // Respond to a click on the "Delete all entries" menu option
             case R.id.action_delete_all_entries:
@@ -122,24 +95,53 @@ public class CatalogActivity extends AppCompatActivity {
 
     private void insetData() {
 
-        ContentValues values = new ContentValues();
+        ContentValues values = new ContentValues( );
         values.put(PetEntry.COLUMN_PET_NAME, "Toto");
         values.put(PetEntry.COLUMN_PET_BREED, "Terrier");
         values.put(PetEntry.COLUMN_PET_GENDER, PetEntry.GENDER_MALE);
         values.put(PetEntry.COLUMN_PET_WEIGHT, 7);
 
         // Insere um novo pet no provider, returnando o URI de conteúdo para o novo pet.
-        Uri newUri = getContentResolver().insert(PetEntry.CONTENT_URI, values);
+        Uri newUri = getContentResolver( ).insert(PetEntry.CONTENT_URI, values);
 
         // Mostra um mensagem toast dependendo ou não se a inserção foi bem sucedida
         if (newUri == null) {
             // Se o novo conteúdo do URI é nulo, então houve um erro com inserção.
             Toast.makeText(this, R.string.insert_failed,
-                    Toast.LENGTH_SHORT).show();
+                    Toast.LENGTH_SHORT
+            ).show( );
         } else {
             // Caso contrário, a inserção foi bem sucedida e podemos mostrar um toast.
             Toast.makeText(this, R.string.insert_ok,
-                    Toast.LENGTH_SHORT).show();
+                    Toast.LENGTH_SHORT
+            ).show( );
         }
+    }
+
+    @Override
+    public Loader <Cursor> onCreateLoader( int id, Bundle args ) {
+
+        String[] projection = {
+                PetEntry._ID,
+                PetEntry.COLUMN_PET_NAME,
+                PetEntry.COLUMN_PET_BREED};
+
+        return new CursorLoader(
+                this,
+                PetEntry.CONTENT_URI,
+                projection, null,
+                null,
+                null);
+    }
+
+    @Override
+    public void onLoadFinished( Loader <Cursor> loader, Cursor data ) {
+        petCursorAdapter.swapCursor(data);
+        listView.setAdapter(petCursorAdapter);
+    }
+
+    @Override
+    public void onLoaderReset( Loader <Cursor> loader ) {
+        petCursorAdapter.swapCursor(null);
     }
 }
