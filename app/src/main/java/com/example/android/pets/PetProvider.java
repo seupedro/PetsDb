@@ -233,8 +233,11 @@ public class PetProvider extends ContentProvider {
         switch (match) {
             case PETS:
                 // Deleta todos os registros que correspondem ao selection e selection args
-                getContext().getContentResolver().notifyChange(uri, null);
-                return database.delete(PetEntry.TABLE_NAME, selection, selectionArgs);
+                int rowsDeleted = database.delete(PetEntry.TABLE_NAME, selection, selectionArgs);
+                if (rowsDeleted != 0){
+                    getContext().getContentResolver().notifyChange(uri, null);
+                }
+                return rowsDeleted;
             case PETS_ID:
                 // Deleta um único registro dado pelo ID na URI
                 selection = PetEntry._ID + "=?";
